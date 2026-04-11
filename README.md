@@ -14,8 +14,8 @@ An Arduino-based text editor that lets you type on a 16x2 LCD screen using an IR
 - 16x2 LCD display
 - IR receiver module (e.g. VS1838B)
 - IR remote control
-- **Recommended:** 100µF capacitor across IR receiver VCC and GND pins (prevents noise/random triggering)
 - Jumper wires
+- Ideally a breadboard but whatever floats your boat
 
 ## Wiring
 
@@ -43,7 +43,7 @@ An Arduino-based text editor that lets you type on a 16x2 LCD screen using an IR
 
 ## Setup
 
-1. Install the following libraries via the Arduino Library Manager:
+1. Install the following libraries via the Arduino Library Manager: (libraries also provided as separate files)
    - `IRremote` by shirriff
    - `LiquidCrystal` (built-in)
 
@@ -54,10 +54,11 @@ An Arduino-based text editor that lets you type on a 16x2 LCD screen using an IR
 #define BTN_ONE 0xF30CFF00  // replace with your remote's HEX
 ```
 
-4. Upload the sketch and start typing!
+4. Upload the sketch and tap on the first/whatever relevant hex you defined on the top.
 
 ## Notes
 
-- If the IR receiver behaves erratically or the Arduino needs frequent resets, add a 100µF capacitor across the receiver's VCC and GND pins
 - The contrast of the LCD can be adjusted using a potentiometer on the V0 pin
 - Currently supports one character position — expanding to full 16-character input is a planned feature
+- [RELEVANT TO STEP 2 IN SETUP] You'll have to comment out the translateRemote in two instances, when defining it at the top ie. void translateRemote(x) {y} and at translateRemote(x); //x is just a placehodler for whatever text is within the brackets, you should get the gist of what I mean//
+- Also I got AI to write the readme, This commit is just making changes to whatever is wrong/hallucinated
