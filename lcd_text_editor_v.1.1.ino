@@ -10,6 +10,7 @@
 #define d7 12
 #define receiverPin 6
 #define BTN_ONE 0xF30CFF00
+#define BTN_TWO 0xE718FF00
 
 // global variables
 char pageOne[16];
@@ -22,16 +23,17 @@ uint32_t last_decodedRawData = 0;
 LiquidCrystal lcd(rs, rw, d4, d5, d6, d7);
 IRrecv irrec(receiverPin);
 
-// loop back to the first letter!
-void resetTypeCounter() {
-  if (typeCounter == 3) {
+// loop back to the first letter! AND NOW 12/4/2026 -> FUNCTION SPECIFIC TYPECOUNTER WOOOOOOOOOOO!!!!
+void resetTypeCounter(uint32_t previousData) {
+  if (typeCounter == 3 || previousData != irrec.decodedIRData.decodedRawData) {
     typeCounter = 0;
   }
 }
 
+
 // button One assignment checker, might have to optimise or hard code it! (the other buttons)
-void remoteAssignOne(uint32_t previous_data) {
-  if (previous_data == BTN_ONE) {
+void remoteAssignOne(uint32_t previousData) {
+  if (previousData == BTN_ONE) {
     typeCounter ++;
       if (typeCounter == 1) {
         pageOne[0] = 'a';
@@ -39,6 +41,19 @@ void remoteAssignOne(uint32_t previous_data) {
     pageOne[0] = 'b';
   } else if (typeCounter == 3) {
     pageOne[0] = 'c';
+  }
+  }
+}
+// 2nd button function (proto-typing, just trying to get 2 button functionality before 9 optimisation!!)
+void remoteAssignTwo(uint32_t previousData) {
+  if (previousData == BTN_TWO) {
+    typeCounter ++;
+      if (typeCounter == 1) {
+        pageOne[0] = 'd';
+  } else if (typeCounter == 2) {
+    pageOne[0] = 'e';
+  } else if (typeCounter == 3) {
+    pageOne[0] = 'f';
   }
   }
 }
@@ -82,16 +97,21 @@ void setup() {
 // polling system - lf optimisation later on cuz its hardware intensive i believe!
 void loop() {
   if(irrec.decode() == true) {
-    resetTypeCounter();
     repeatSignal();
+    resetTypeCounter(last_decodedRawData);
     if(irrec.decodedIRData.decodedRawData == BTN_ONE) {
       last_decodedRawData = BTN_ONE;
       remoteAssignOne(last_decodedRawData);
       delay(75);
       irrec.resume();
       renderScreen();
+    } else if(irrec.decodedIRData.decodedRawData == BTN_TWO) {
+      last_decodedRawData = BTN_TWO;
+      remoteAssignTwo(last_decodedRawData);
+      delay(75);
+      irrec.resume();
+      renderScreen();
     }
-// uncomment the below line and the function above to check ur hex in serial
 //    translateRemote();
   }
 
