@@ -23,7 +23,7 @@ An Arduino-based text editor that lets you type on a 16x2 LCD screen using an IR
 | LCD Pin | Arduino Pin |
 |---------|-------------|
 | RS      | 7           |
-| RW      | 8           |
+| E       | 8           |
 | D4      | 9           |
 | D5      | 10          |
 | D6      | 11          |
