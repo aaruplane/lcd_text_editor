@@ -3,7 +3,7 @@
 
 // pin definition
 #define rs 7
-#define rw 8
+#define E 8
 #define d4 9
 #define d5 10
 #define d6 11
@@ -17,30 +17,51 @@ char pageOne[16];
 int pageTwo[16] = {0};
 int pageThree[16] = {0};
 int typeCounter = 0;
+int curSlot = -1;
+bool youPressed = false;
 uint32_t last_decodedRawData = 0;
 
 // hardware parameters
-LiquidCrystal lcd(rs, rw, d4, d5, d6, d7);
+LiquidCrystal lcd(rs, E, d4, d5, d6, d7);
 IRrecv irrec(receiverPin);
+
+void youPressedFunc() {
+  if (irrec.decode() == true) {
+    youPressed = true;
+  } else {
+    youPressed = false;
+  }
+}
+
+void buttonCheckSlot(uint32_t previousData) {
+  if (youPressed == true) {
+    if (previousData != irrec.decodedIRData.decodedRawData) {
+      curSlot++;
+      youPressed = false;
+    } else if (previousData == irrec.decodedIRData.decodedRawData) {
+      curSlot = curSlot;
+      youPressed = false;
+    }
+  }
+}
 
 // loop back to the first letter! AND NOW 12/4/2026 -> FUNCTION SPECIFIC TYPECOUNTER WOOOOOOOOOOO!!!!
 void resetTypeCounter(uint32_t previousData) {
   if (typeCounter == 3 || previousData != irrec.decodedIRData.decodedRawData) {
-    typeCounter = 0;
+    typeCounter = 0;  
   }
 }
-
 
 // button One assignment checker, might have to optimise or hard code it! (the other buttons)
 void remoteAssignOne(uint32_t previousData) {
   if (previousData == BTN_ONE) {
     typeCounter ++;
       if (typeCounter == 1) {
-        pageOne[0] = 'a';
+        pageOne[curSlot] = 'a';
   } else if (typeCounter == 2) {
-    pageOne[0] = 'b';
+    pageOne[curSlot] = 'b';
   } else if (typeCounter == 3) {
-    pageOne[0] = 'c';
+    pageOne[curSlot] = 'c';
   }
   }
 }
@@ -49,11 +70,11 @@ void remoteAssignTwo(uint32_t previousData) {
   if (previousData == BTN_TWO) {
     typeCounter ++;
       if (typeCounter == 1) {
-        pageOne[0] = 'd';
+        pageOne[curSlot] = 'd';
   } else if (typeCounter == 2) {
-    pageOne[0] = 'e';
+    pageOne[curSlot] = 'e';
   } else if (typeCounter == 3) {
-    pageOne[0] = 'f';
+    pageOne[curSlot] = 'f';
   }
   }
 }
@@ -98,8 +119,10 @@ void setup() {
 void loop() {
   if(irrec.decode() == true) {
     repeatSignal();
+    youPressedFunc();
+    buttonCheckSlot(last_decodedRawData);
     resetTypeCounter(last_decodedRawData);
-    if(irrec.decodedIRData.decodedRawData == BTN_ONE) {
+    if (irrec.decodedIRData.decodedRawData == BTN_ONE) {
       last_decodedRawData = BTN_ONE;
       remoteAssignOne(last_decodedRawData);
       delay(75);
