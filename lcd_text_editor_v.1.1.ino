@@ -1,7 +1,7 @@
-#include <IRremote.hpp>
 #include <LiquidCrystal.h>
 
-// pin definition
+#include <IRremote.hpp>
+
 #define rs 7
 #define E 8
 #define d4 9
@@ -11,51 +11,22 @@
 #define receiverPin 6
 #define BTN_ONE 0xF30CFF00
 #define BTN_TWO 0xE718FF00
-
+LiquidCrystal lcd(rs, E, d4, d5, d6, d7);
+IRrecv irrec(receiverPin);
 // global variables
 char pageOne[16];
 int pageTwo[16] = {0};
 int pageThree[16] = {0};
-int typeCounter = 0;
-int curSlot = -1;
-bool youPressed = false;
+int typeCounter = 1;
+int curSlot = 0;
+int previousCurrentSlot = 0;
 uint32_t last_decodedRawData = 0;
-
-// hardware parameters
-LiquidCrystal lcd(rs, E, d4, d5, d6, d7);
-IRrecv irrec(receiverPin);
-
-void youPressedFunc() {
-  if (irrec.decode() == true) {
-    youPressed = true;
-  } else {
-    youPressed = false;
-  }
-}
-
-void buttonCheckSlot(uint32_t previousData) {
-  if (youPressed == true) {
-    if (previousData != irrec.decodedIRData.decodedRawData) {
-      curSlot++;
-      youPressed = false;
-    } else if (previousData == irrec.decodedIRData.decodedRawData) {
-      curSlot = curSlot;
-      youPressed = false;
-    }
-  }
-}
-
-// loop back to the first letter! AND NOW 12/4/2026 -> FUNCTION SPECIFIC TYPECOUNTER WOOOOOOOOOOO!!!!
-void resetTypeCounter(uint32_t previousData) {
-  if (typeCounter == 3 || previousData != irrec.decodedIRData.decodedRawData) {
-    typeCounter = 0;  
-  }
-}
+uint32_t previousButtonPress;
+uint32_t currentData;
+unsigned long lastPressTime = 0;
 
 // button One assignment checker, might have to optimise or hard code it! (the other buttons)
 void remoteAssignOne(uint32_t previousData) {
-  if (previousData == BTN_ONE) {
-    typeCounter ++;
       if (typeCounter == 1) {
         pageOne[curSlot] = 'a';
   } else if (typeCounter == 2) {
@@ -63,12 +34,11 @@ void remoteAssignOne(uint32_t previousData) {
   } else if (typeCounter == 3) {
     pageOne[curSlot] = 'c';
   }
-  }
+  typeCounter++;
 }
+
 // 2nd button function (proto-typing, just trying to get 2 button functionality before 9 optimisation!!)
 void remoteAssignTwo(uint32_t previousData) {
-  if (previousData == BTN_TWO) {
-    typeCounter ++;
       if (typeCounter == 1) {
         pageOne[curSlot] = 'd';
   } else if (typeCounter == 2) {
@@ -76,7 +46,7 @@ void remoteAssignTwo(uint32_t previousData) {
   } else if (typeCounter == 3) {
     pageOne[curSlot] = 'f';
   }
-  }
+  typeCounter++;
 }
 
 // uncomment out this code to actually check your hex's and replace them in the define section...
@@ -95,8 +65,9 @@ void remoteAssignTwo(uint32_t previousData) {
 void repeatSignal() {
   if(irrec.decodedIRData.flags) {
     irrec.decodedIRData.decodedRawData = last_decodedRawData;
+    delay(20);
   } else {
-    irrec.decodedIRData.decodedRawData = irrec.decodedIRData.decodedRawData;
+    last_decodedRawData = irrec.decodedIRData.decodedRawData;
   }
 }
 
@@ -115,27 +86,43 @@ void setup() {
   irrec.begin(6);
   lcd.begin(16, 2);
 }
+
 // polling system - lf optimisation later on cuz its hardware intensive i believe!
 void loop() {
-  if(irrec.decode() == true) {
-    repeatSignal();
-    youPressedFunc();
-    buttonCheckSlot(last_decodedRawData);
-    resetTypeCounter(last_decodedRawData);
-    if (irrec.decodedIRData.decodedRawData == BTN_ONE) {
-      last_decodedRawData = BTN_ONE;
-      remoteAssignOne(last_decodedRawData);
-      delay(75);
-      irrec.resume();
-      renderScreen();
-    } else if(irrec.decodedIRData.decodedRawData == BTN_TWO) {
-      last_decodedRawData = BTN_TWO;
-      remoteAssignTwo(last_decodedRawData);
-      delay(75);
-      irrec.resume();
-      renderScreen();
-    }
-//    translateRemote();
+  if(millis() - lastPressTime < 150) {
+    return;
   }
+  if(irrec.decode() == true) {
+    currentData = irrec.decodedIRData.decodedRawData;
+    previousButtonPress = last_decodedRawData;
+    unsigned long elapsedTime = millis() - lastPressTime;
+    if (irrec.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
+      irrec.resume();
+      return;
+    }
+    if (previousButtonPress != currentData || elapsedTime >= 2000) {
+      curSlot++;
+      typeCounter = 1;
+      lastPressTime = millis();
+    }
 
+    repeatSignal();
+      if (irrec.decodedIRData.decodedRawData == BTN_ONE) {
+      remoteAssignOne(last_decodedRawData);
+      renderScreen();
+      delay(75);
+      if (typeCounter == 4) {
+      typeCounter = 1;
+    }
+    } else if(irrec.decodedIRData.decodedRawData == BTN_TWO) {
+      remoteAssignTwo(last_decodedRawData);
+      renderScreen(); 
+      delay(75);
+      if (typeCounter == 4) {
+      typeCounter = 1;
+    }
+    }
+        lastPressTime = millis();
+    irrec.resume();
+  }
 }
