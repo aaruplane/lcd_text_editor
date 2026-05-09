@@ -1,64 +1,64 @@
-# IR Remote LCD Text Editor
+# 📟 IR Remote LCD Text Editor
 
-An Arduino-based text editor that lets you type on a 16x2 LCD screen using an IR remote control. Each button on the remote cycles through a set of letters, similar to old phone T9 input.
+An advanced Arduino-based text editor that simulates the classic T9 predictive-style input on a 16x2 LCD. This project has evolved from a single-character prototype to a fully functional, two-line editor with smart timing and memory management.
 
-## How It Works
+## ✨ Key Features
 
-- Press a button on the remote to cycle through its assigned letters (e.g. a → b → c → a)
-- The LCD updates in real time with each press
-- Repeat signals from holding a button are handled correctly
+- **Full Alphabet Support:** Buttons 1-9 are mapped to 'a-z' and spaces, allowing for complete sentence construction.
+- **Dual-Line Navigation:** Automatic cursor wrapping from Line 0 to Line 1 (32 total character slots).
+- **Smart T9 Logic:** Uses a 2000ms (2-second) timeout to distinguish between cycling letters on the current slot and advancing to the next position.
+- **Memory Optimization:** Implements C++ pointers (`char* activePage`) to dynamically switch between memory buffers for the first and second rows.
+- **Robust IR Handling:** Filters out IR repeat flags and uses `millis()` timing to ensure stable input and prevent "ghost" double-types.
 
-## Hardware Required
+## 🛠 Hardware Required
 
-- Arduino (Uno or compatible)
-- 16x2 LCD display
-- IR receiver module (e.g. VS1838B)
-- IR remote control
-- Jumper wires
-- Ideally a breadboard but whatever floats your boat
+- **Arduino Uno** (or any ATmega328P based board)
+- **16x2 LCD Display** (HD44780 compatible)
+- **IR Receiver Module** (e.g., VS1838B or TSOP38238)
+- **IR Remote Control** (NEC protocol preferred)
+- **10k Potentiometer** (for screen contrast)
+- **Jumper Wires & Breadboard**
 
-## Wiring
+## 🔌 Wiring Diagram
 
-### LCD
-| LCD Pin | Arduino Pin |
-|---------|-------------|
-| RS      | 7           |
-| E       | 8           |
-| D4      | 9           |
-| D5      | 10          |
-| D6      | 11          |
-| D7      | 12          |
-| VSS     | GND         |
-| VDD     | 5V          |
-| V0      | Potentiometer (contrast) |
-| A       | 5V (backlight) |
-| K       | GND (backlight) |
+### LCD Display
+| LCD Pin | Arduino Pin | Description |
+|---------|-------------|-------------|
+| **RS**  | 7           | Register Select |
+| **E**   | 8           | Enable |
+| **D4**  | 9           | Data 4 |
+| **D5**  | 10          | Data 5 |
+| **D6**  | 11          | Data 6 |
+| **D7**  | 12          | Data 7 |
+| **VSS** | GND         | Ground |
+| **VDD** | 5V          | Power |
+| **V0**  | Center Pin  | Potentiometer (Contrast) |
 
 ### IR Receiver
-| IR Receiver Pin | Arduino Pin |
-|-----------------|-------------|
-| Signal          | 6           |
-| VCC             | 5V          |
-| GND             | GND         |
+| IR Pin | Arduino Pin |
+|--------|-------------|
+| **Signal** | 6       |
+| **VCC**    | 5V      |
+| **GND**    | GND     |
 
-## Setup
+## 🚀 Getting Started
 
-1. Install the following libraries via the Arduino Library Manager: (libraries also provided as separate files)
-   - `IRremote` by shirriff
-   - `LiquidCrystal` (built-in)
+1.  **Library Installation:**
+    Ensure you have `IRremote` (by Armin Joachimsmeyer) and the built-in `LiquidCrystal` libraries installed in your Arduino IDE.
 
-2. **Find your remote's HEX codes** — uncomment `translateRemote()` in the code and open the Serial Monitor at 9600 baud. Press a button and note the HEX value printed.
+2.  **Mapping Your Remote:**
+    Every remote sends different HEX codes. To configure yours:
+    - Uncomment the `translateRemote()` function in the code.
+    - Open the **Serial Monitor** at **9600 Baud**.
+    - Press buttons 1 through 9.
+    - Copy those HEX values into the `#define BTN_X` section at the top of the sketch.
 
-3. Update the `BTN_ONE` define at the top of the sketch with your remote's HEX code:
-```cpp
-#define BTN_ONE 0xF30CFF00  // replace with your remote's HEX
-```
+3.  **Typing Logic:**
+    - **Cycle:** Tap a button quickly to cycle through its assigned letters (e.g., 'abc').
+    - **Lock & Move:** Wait 2 seconds for the character to "lock in," or simply press a different button to move to the next slot immediately.
+    - **Newline:** Once you finish the 16th character on the first row, the cursor will automatically jump to the second row.
 
-4. Upload the sketch and tap on the first/whatever relevant hex you defined on the top.
+---
 
-## Notes
-
-- The contrast of the LCD can be adjusted using a potentiometer on the V0 pin
-- Currently supports one character position — expanding to full 16-character input is a planned feature
-- [RELEVANT TO STEP 2 IN SETUP] You'll have to comment out the translateRemote in two instances, when defining it at the top ie. void translateRemote(x) {y} and at translateRemote(x); //x is just a placehodler for whatever text is within the brackets, you should get the gist of what I mean//
-- Also I got AI to write the readme, This commit is just making changes to whatever is wrong/hallucinated
+### 📝 Development Note
+This project represents a significant refactor from the initial version. By moving away from hard-coded array indices and adopting a pointer-based "active page" system, the code is now more modular and ready for further expansion, such as adding a backspace function or EEPROM storage.
