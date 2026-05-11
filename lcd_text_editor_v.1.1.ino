@@ -9,8 +9,11 @@
 #define d6 11
 #define d7 12
 #define receiverPin 6
-
-// you'll want to change these based on the results  from the commented translateRemote function below
+#define BTN_NEXT 0xBC43FF00
+#define BTN_BACK 0xBB44FF00
+#define BTN_UP 0xF609FF00
+#define BTN_DOWN 0XF807FF00
+#define BTN_ZERO 0xE916FF00
 #define BTN_ONE 0xF30CFF00
 #define BTN_TWO 0xE718FF00
 #define BTN_THREE 0xA15EFF00
@@ -35,6 +38,7 @@ int userCurrentLine = 0;
 uint32_t last_decodedRawData = 0;
 uint32_t previousButtonPress;
 uint32_t currentData;
+bool wasZeroCheck;
 unsigned long lastPressTime = 0;
 // new tool i learnt -- pointer 
 char* activePage;
@@ -141,14 +145,13 @@ void remoteAssignNine(uint32_t previousData, char* activePage) {
   typeCounter++;
 }
 
-// uncomment out this code to actually check your hex's and replace them in the define section...
-// void translateRemote() {
-//   if (irrec.decodedIRData.flags) {
-//     Serial.println("irrec.decodedIRdata.flags is true");
-//   } else {
-//     Serial.println(irrec.decodedIRData.decodedRawData, HEX);
-//   }
-// }
+void translateRemote() {
+  if (irrec.decodedIRData.flags) {
+    Serial.println("irrec.decodedIRdata.flags is true");
+  } else {
+    Serial.println(irrec.decodedIRData.decodedRawData, HEX);
+  }
+}
 
 /*
  apparently repeat signal isnt the same as a signal (hex)
@@ -187,18 +190,26 @@ void setup() {
 
 // polling system - lf optimisation later on cuz its hardware intensive i believe!
 void loop() {
+      // uncomment this and goodluck searching for your IR, sorry ill have to fix later LMAO
+ //  translateRemote();
   if(millis() - lastPressTime < 150) {
     return;
   }
+
   if(irrec.decode() == true) {
     currentData = irrec.decodedIRData.decodedRawData;
     previousButtonPress = last_decodedRawData;
+
     unsigned long elapsedTime = millis() - lastPressTime;
+
     if (irrec.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
       irrec.resume();
       return;
     }
-    if (previousButtonPress != currentData || elapsedTime >= 2000) {
+
+
+    if (currentData != BTN_ZERO && previousButtonPress != currentData || elapsedTime >= 2000) {
+
       curSlot++;
       typeCounter = 1;
       if (curSlot > 15) {
@@ -210,6 +221,7 @@ void loop() {
         }
       }
       lastPressTime = millis();
+
     }
     if (userCurrentLine == 0) {
       activePage = pageOne;
@@ -218,6 +230,27 @@ void loop() {
     }
 
     repeatSignal();
+    if (currentData == BTN_ZERO) {
+      activePage[curSlot] = ' ';
+      renderScreen(userCurrentLine);
+      if (userCurrentLine == 0 && curSlot == 0) {
+        irrec.resume();
+        return; 
+       } else if (userCurrentLine == 1 && curSlot == 0) {
+          userCurrentLine = 0;
+          curSlot = 15;
+          activePage = pageOne;
+          renderScreen(userCurrentLine);
+        }
+        else if (curSlot > 0) {
+        curSlot --;
+        renderScreen(userCurrentLine);
+      }
+      typeCounter = 1;
+      last_decodedRawData = 0;
+      irrec.resume();
+      return;
+    }
     if (currentData == BTN_ONE) {
       remoteAssignOne(last_decodedRawData, activePage);
       renderScreen(userCurrentLine);
